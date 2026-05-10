@@ -5,7 +5,8 @@
     "experience_level": "student",
     "timeline": "actively applying",
     "resume_bullet": "Built a web app with React and Node.js for tracking study habits",
-    "missing_keywords": ["component-based architecture", "REST API integration", "responsive design"]
+    "missing_keywords": ["component-based architecture", "REST API integration", "responsive design"],
+    "job_description": "We are looking for a Junior Frontend Engineer to join our product team. You will build and maintain responsive web interfaces using React and TypeScript. Responsibilities include implementing component-based architecture, integrating REST APIs, writing unit tests, and collaborating with designers on responsive design. Experience with state management (Redux or Context API) is a plus."
   },
   {
     "id": 2,
@@ -37,7 +38,8 @@
     "experience_level": "new grad",
     "timeline": "actively applying",
     "resume_bullet": "Made Excel spreadsheets to track club budget and expenses",
-    "missing_keywords": ["financial modeling", "variance analysis", "data-driven insights"]
+    "missing_keywords": ["financial modeling", "variance analysis", "data-driven insights"],
+    "job_description": "We are hiring a Financial Analyst to support our FP&A team. You will build and maintain financial models, perform variance analysis against budget and forecast, and deliver data-driven insights to senior leadership. Proficiency in Excel and experience with financial modeling are required. Familiarity with SQL and BI tools is a plus."
   },
   {
     "id": 6,
@@ -61,7 +63,8 @@
     "experience_level": "student",
     "timeline": "actively applying",
     "resume_bullet": "Set up GitHub Actions to run tests automatically on every push",
-    "missing_keywords": ["CI/CD pipeline", "automated testing", "deployment pipeline"]
+    "missing_keywords": ["CI/CD pipeline", "automated testing", "deployment pipeline"],
+    "job_description": "We are looking for a Junior Full-Stack Engineer to help build and ship features across our web platform. You will work on both frontend (React) and backend (Node.js/Express) code, write automated testing suites, and maintain our CI/CD pipeline using GitHub Actions. Experience with deployment pipelines and containerization (Docker) is a strong plus."
   },
   {
     "id": 9,

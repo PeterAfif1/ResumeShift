@@ -181,29 +181,51 @@ async function runCase(tc) {
     return { pass: false, modelKeywords: [], foundKeywords: [] };
   }
 
-  // 2. Send goals — server auto-chains Phase 1 → 2 → 3
+  // 2. Send goals — server runs Phase 1 classifier, then asks for JD (Phase 1.5)
   const goalMessage =
     `I'm targeting a ${tc.target_role} role. ` +
     `I'm a ${tc.experience_level}. ` +
     `I am ${tc.timeline}.`;
 
+  // Phase 1.5 response: send the JD if present, otherwise skip
+  const jdMessage = tc.job_description
+    ? tc.job_description
+    : 'skip';
+
+  const jdPath = tc.job_description ? 'JD-grounded' : 'general (skip)';
+
   let allTurns = [];
 
   try {
+    // Turn 1: goals → triggers Phase 1 classifier
     const r1 = await chat(sessionId, goalMessage);
     allTurns = [...allTurns, ...(r1.turns || [])];
 
+    // Turn 2: JD or skip → triggers Phase 1.5 classifier → auto-chains Phase 2 → 3
     if (!extractPhase(allTurns, 3)) {
-      const r2 = await chat(sessionId, goalMessage);
+      const r2 = await chat(sessionId, jdMessage);
       allTurns = [...allTurns, ...(r2.turns || [])];
     }
 
+    // If Phase 3 still hasn't arrived, the classifier may have needed more context.
+    // Retry goals + JD/skip.
     if (!extractPhase(allTurns, 3)) {
-      const r3 = await chat(
+      const r3 = await chat(sessionId, goalMessage);
+      allTurns = [...allTurns, ...(r3.turns || [])];
+    }
+
+    if (!extractPhase(allTurns, 3)) {
+      const r4 = await chat(sessionId, jdMessage);
+      allTurns = [...allTurns, ...(r4.turns || [])];
+    }
+
+    // Final fallback: explicit trigger
+    if (!extractPhase(allTurns, 3)) {
+      const r5 = await chat(
         sessionId,
         'Please run the full resume analysis (Phase 2) and bullet rewrites (Phase 3) now.',
       );
-      allTurns = [...allTurns, ...(r3.turns || [])];
+      allTurns = [...allTurns, ...(r5.turns || [])];
     }
   } catch (err) {
     console.log(`${tag} ERROR during chat: ${err.message}\n`);
@@ -233,6 +255,7 @@ async function runCase(tc) {
   console.log(`${tag} ${pass ? 'PASS' : 'FAIL'}  — ${foundKeywords.length}/${modelKeywords.length} model keywords followed through`);
   console.log(`        Bullet     : "${tc.resume_bullet}"`);
   console.log(`        Role       : ${tc.target_role}`);
+  console.log(`        JD path    : ${jdPath}`);
   console.log(`        Model kws  : ${modelKeywords.length  ? modelKeywords.join(', ')  : '(none flagged)'}`);
   console.log(`        Found      : ${foundKeywords.length  ? foundKeywords.join(', ')  : '(none)'}`);
   console.log(`        Missed     : ${missed.length         ? missed.join(', ')         : '(none)'}`);
@@ -279,6 +302,8 @@ async function main() {
   console.log('ResumeShift Eval v3 — Phase 2→3 Keyword Follow-Through');
   console.log('=======================================================');
   console.log(`Running ${CASES.length} test cases against ${SERVER}`);
+  const jdCount = CASES.filter((c) => c.job_description).length;
+  console.log(`  ${jdCount} JD-grounded  |  ${CASES.length - jdCount} general (skip)`);
   console.log('PASS = model used ≥2 of its own Phase 2 keywords in Phase 3\n');
 
   let passed        = 0;
