@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "target_role": "Junior Frontend Engineer",
+    "experience_level": "student",
+    "timeline": "actively applying",
+    "resume_bullet": "Built a web app with React and Node.js for tracking study habits",
+    "missing_keywords": ["component-based architecture", "REST API integration", "responsive design"]
+  },
+  {
+    "id": 2,
+    "target_role": "Software Engineer Intern",
+    "experience_level": "student",
+    "timeline": "actively applying",
+    "resume_bullet": "Made a database for a school project using PostgreSQL",
+    "missing_keywords": ["scalability", "query optimization", "backend development"]
+  },
+  {
+    "id": 3,
+    "target_role": "UX Researcher",
+    "experience_level": "student",
+    "timeline": "exploring",
+    "resume_bullet": "Conducted interviews with students about app usage for a class project",
+    "missing_keywords": ["user research", "qualitative analysis", "insight synthesis"]
+  },
+  {
+    "id": 4,
+    "target_role": "Associate Product Manager",
+    "experience_level": "new grad",
+    "timeline": "actively applying",
+    "resume_bullet": "Helped organize a team project and tracked deadlines in a spreadsheet",
+    "missing_keywords": ["roadmap", "cross-functional collaboration", "stakeholder alignment"]
+  },
+  {
+    "id": 5,
+    "target_role": "Financial Analyst",
+    "experience_level": "new grad",
+    "timeline": "actively applying",
+    "resume_bullet": "Made Excel spreadsheets to track club budget and expenses",
+    "missing_keywords": ["financial modeling", "variance analysis", "data-driven insights"]
+  },
+  {
+    "id": 6,
+    "target_role": "Junior Accountant",
+    "experience_level": "new grad",
+    "timeline": "actively applying",
+    "resume_bullet": "Recorded transactions and balanced accounts for a student-run business",
+    "missing_keywords": ["general ledger", "reconciliation", "GAAP compliance"]
+  },
+  {
+    "id": 7,
+    "target_role": "Business Analyst",
+    "experience_level": "new grad",
+    "timeline": "actively applying",
+    "resume_bullet": "Researched competitors for a class case study and made a presentation",
+    "missing_keywords": ["market analysis", "strategic recommendations", "data synthesis"]
+  },
+  {
+    "id": 8,
+    "target_role": "Junior Full-Stack Engineer",
+    "experience_level": "student",
+    "timeline": "actively applying",
+    "resume_bullet": "Set up GitHub Actions to run tests automatically on every push",
+    "missing_keywords": ["CI/CD pipeline", "automated testing", "deployment pipeline"]
+  },
+  {
+    "id": 9,
+    "target_role": "Investment Banking Analyst",
+    "experience_level": "new grad",
+    "timeline": "actively applying",
+    "resume_bullet": "Built a valuation model for a mock M&A deal in a finance class",
+    "missing_keywords": ["DCF analysis", "comparable company analysis", "deal execution"]
+  },
+  {
+    "id": 10,
+    "target_role": "Growth Product Manager",
+    "experience_level": "new grad",
+    "timeline": "actively applying",
+    "resume_bullet": "Posted on social media for a student org and tracked how many people liked the posts",
+    "missing_keywords": ["user acquisition", "engagement metrics", "A/B testing"]
+  }
+]
