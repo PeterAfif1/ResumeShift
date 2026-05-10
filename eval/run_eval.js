@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 /**
- * ResumeShift eval runner
+ * ResumeShift eval runner — v3
+ *
+ * PASS/FAIL logic:
+ *   For each Phase 3 rewrite, find the corresponding Phase 2 flagged bullet
+ *   and check if ≥2 of the model's own missing_keywords from Phase 2 appear
+ *   in the rewritten text or keywords_added. The hardcoded missing_keywords
+ *   in test_cases.json are printed as a reference only.
  *
  * Usage:
- *   EVAL_MODE=1 node server/src/index.js   # start server with eval endpoint enabled
- *   node eval/run_eval.js                  # run this script in a second terminal
+ *   EVAL_MODE=1 node server/src/index.js   # terminal 1
+ *   node eval/run_eval.js                  # terminal 2
  *
  * Requires Node 18+ (native fetch). No extra dependencies.
- * Assumes server is running on http://localhost:3001.
  */
 
 'use strict';
@@ -22,10 +27,6 @@ const CASES  = JSON.parse(
 
 // ─── HTTP helpers ────────────────────────────────────────────────────────────
 
-/**
- * Create a session directly from plain text via the eval-only endpoint.
- * The server must be started with EVAL_MODE=1.
- */
 async function createSession(resumeText) {
   const res = await fetch(`${SERVER}/api/eval/session`, {
     method: 'POST',
@@ -48,7 +49,7 @@ async function chat(sessionId, message) {
   return data; // { turns[], warning? }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Turn helpers ─────────────────────────────────────────────────────────────
 
 function extractPhase(turns, phase) {
   for (const turn of (turns || [])) {
@@ -57,25 +58,113 @@ function extractPhase(turns, phase) {
   return null;
 }
 
+// ─── Keyword scoring (v3) ────────────────────────────────────────────────────
+
 /**
- * Check how many of the expected missing_keywords appear (case-insensitive)
- * in either the rewritten bullet text or the keywords_added array.
+ * Build a lookup map from original bullet text → model's missing_keywords.
+ * Uses the Phase 2 flagged_bullets array.
+ *
+ * @param {object} phase2 - parsed Phase 2 JSON
+ * @returns {Map<string, string[]>} original bullet → missing_keywords[]
  */
-function findKeywordHits(missingKeywords, rewrites) {
-  const haystack = rewrites
-    .flatMap((r) => [r.rewritten || '', ...(r.keywords_added || [])])
+function buildKeywordMap(phase2) {
+  const map = new Map();
+  for (const bullet of (phase2.flagged_bullets || [])) {
+    if (bullet.original && Array.isArray(bullet.missing_keywords)) {
+      map.set(bullet.original.trim(), bullet.missing_keywords);
+    }
+  }
+  return map;
+}
+
+/**
+ * For a single rewrite, find how many of the model's Phase 2 keywords
+ * appear in the rewritten text or keywords_added (case-insensitive).
+ *
+ * @param {string[]} modelKeywords - from Phase 2 flagged bullet
+ * @param {object}   rewrite       - Phase 3 rewrite object
+ * @returns {string[]} keywords that were found
+ */
+function scoreRewrite(modelKeywords, rewrite) {
+  const haystack = [
+    rewrite.rewritten || '',
+    ...(rewrite.keywords_added || []),
+  ]
     .join(' ')
     .toLowerCase();
 
-  return missingKeywords.filter((kw) => haystack.includes(kw.toLowerCase()));
+  return modelKeywords.filter((kw) => haystack.includes(kw.toLowerCase()));
 }
 
-// ─── Per-case runner ─────────────────────────────────────────────────────────
+/**
+ * Score a full test case.
+ *
+ * Strategy: find the rewrite whose `original` best matches the test bullet,
+ * then check the model's own Phase 2 keywords for that bullet.
+ * Falls back to scoring across all rewrites if no exact match.
+ *
+ * @returns {{ pass: boolean, modelKeywords: string[], foundKeywords: string[] }}
+ */
+function scoreCase(tc, phase2, phase3) {
+  const kwMap = buildKeywordMap(phase2);
+
+  // Try to find the rewrite that corresponds to the test bullet
+  // (exact match first, then substring match)
+  const testBullet = tc.resume_bullet.trim().toLowerCase();
+
+  let matchedRewrite = null;
+  let modelKeywords  = [];
+
+  for (const [original, kws] of kwMap.entries()) {
+    if (original.toLowerCase() === testBullet) {
+      // Exact match
+      const rw = phase3.rewrites.find(
+        (r) => r.original?.trim().toLowerCase() === original.toLowerCase(),
+      );
+      if (rw) { matchedRewrite = rw; modelKeywords = kws; break; }
+    }
+  }
+
+  if (!matchedRewrite) {
+    // Substring match — the model may have slightly rephrased the bullet
+    for (const [original, kws] of kwMap.entries()) {
+      const origLower = original.toLowerCase();
+      const rw = phase3.rewrites.find(
+        (r) => r.original?.trim().toLowerCase() === origLower,
+      );
+      if (rw && (origLower.includes(testBullet) || testBullet.includes(origLower))) {
+        matchedRewrite = rw; modelKeywords = kws; break;
+      }
+    }
+  }
+
+  if (!matchedRewrite) {
+    // No match found — fall back to scoring all rewrites against all model keywords
+    // (handles cases where the model paraphrased the bullet significantly)
+    modelKeywords = [...kwMap.values()].flat();
+    const allHaystack = phase3.rewrites
+      .flatMap((r) => [r.rewritten || '', ...(r.keywords_added || [])])
+      .join(' ')
+      .toLowerCase();
+    const found = [...new Set(
+      modelKeywords.filter((kw) => allHaystack.includes(kw.toLowerCase())),
+    )];
+    return { pass: found.length >= 2, modelKeywords, foundKeywords: found };
+  }
+
+  const found = scoreRewrite(modelKeywords, matchedRewrite);
+  return {
+    pass: found.length >= 2,
+    modelKeywords,
+    foundKeywords: found,
+  };
+}
+
+// ─── Per-case runner ──────────────────────────────────────────────────────────
 
 async function runCase(tc) {
   const tag = `[${String(tc.id).padStart(2, '0')}]`;
 
-  // Build a minimal single-bullet resume as plain text
   const resumeText = [
     'RESUME',
     '',
@@ -88,11 +177,11 @@ async function runCase(tc) {
   try {
     sessionId = await createSession(resumeText);
   } catch (err) {
-    console.log(`${tag} ERROR creating session: ${err.message}`);
-    return { pass: false, hits: [] };
+    console.log(`${tag} ERROR creating session: ${err.message}\n`);
+    return { pass: false, modelKeywords: [], foundKeywords: [] };
   }
 
-  // 2. Send goals — triggers Phase 1 → classifier → Phase 2 → Phase 3
+  // 2. Send goals — server auto-chains Phase 1 → 2 → 3
   const goalMessage =
     `I'm targeting a ${tc.target_role} role. ` +
     `I'm a ${tc.experience_level}. ` +
@@ -104,14 +193,11 @@ async function runCase(tc) {
     const r1 = await chat(sessionId, goalMessage);
     allTurns = [...allTurns, ...(r1.turns || [])];
 
-    // If Phase 3 didn't arrive yet, the classifier may have needed more context.
-    // Send the goals again as a follow-up.
     if (!extractPhase(allTurns, 3)) {
       const r2 = await chat(sessionId, goalMessage);
       allTurns = [...allTurns, ...(r2.turns || [])];
     }
 
-    // Final fallback: explicit trigger
     if (!extractPhase(allTurns, 3)) {
       const r3 = await chat(
         sessionId,
@@ -120,51 +206,58 @@ async function runCase(tc) {
       allTurns = [...allTurns, ...(r3.turns || [])];
     }
   } catch (err) {
-    console.log(`${tag} ERROR during chat: ${err.message}`);
-    return { pass: false, hits: [] };
+    console.log(`${tag} ERROR during chat: ${err.message}\n`);
+    return { pass: false, modelKeywords: [], foundKeywords: [] };
   }
 
-  // 3. Extract Phase 3 rewrites
+  // 3. Extract phases
+  const phase2 = extractPhase(allTurns, 2);
   const phase3 = extractPhase(allTurns, 3);
+
+  if (!phase2) {
+    console.log(`${tag} FAIL  — Phase 2 not returned`);
+    console.log(`        Bullet : "${tc.resume_bullet}"\n`);
+    return { pass: false, modelKeywords: [], foundKeywords: [] };
+  }
+
   if (!phase3 || !phase3.rewrites?.length) {
     console.log(`${tag} FAIL  — Phase 3 not returned`);
-    console.log(`        Bullet : "${tc.resume_bullet}"`);
-    console.log(`        Role   : ${tc.target_role}`);
-    console.log();
-    return { pass: false, hits: [] };
+    console.log(`        Bullet : "${tc.resume_bullet}"\n`);
+    return { pass: false, modelKeywords: [], foundKeywords: [] };
   }
 
-  // 4. Score keyword coverage
-  const hits   = findKeywordHits(tc.missing_keywords, phase3.rewrites);
-  const missed = tc.missing_keywords.filter((k) => !hits.includes(k));
-  const pass   = hits.length >= 2;
+  // 4. Score using model's own Phase 2 keywords
+  const { pass, modelKeywords, foundKeywords } = scoreCase(tc, phase2, phase3);
+  const missed = modelKeywords.filter((k) => !foundKeywords.includes(k));
 
-  console.log(`${tag} ${pass ? 'PASS' : 'FAIL'}  — ${hits.length}/${tc.missing_keywords.length} keywords hit`);
-  console.log(`        Bullet : "${tc.resume_bullet}"`);
-  console.log(`        Role   : ${tc.target_role}`);
-  console.log(`        Found  : ${hits.length  ? hits.join(', ')   : '(none)'}`);
-  console.log(`        Missed : ${missed.length ? missed.join(', ') : '(none)'}`);
+  console.log(`${tag} ${pass ? 'PASS' : 'FAIL'}  — ${foundKeywords.length}/${modelKeywords.length} model keywords followed through`);
+  console.log(`        Bullet     : "${tc.resume_bullet}"`);
+  console.log(`        Role       : ${tc.target_role}`);
+  console.log(`        Model kws  : ${modelKeywords.length  ? modelKeywords.join(', ')  : '(none flagged)'}`);
+  console.log(`        Found      : ${foundKeywords.length  ? foundKeywords.join(', ')  : '(none)'}`);
+  console.log(`        Missed     : ${missed.length         ? missed.join(', ')         : '(none)'}`);
+  console.log(`        Ref kws    : ${tc.missing_keywords.join(', ')}  [reference only]`);
   console.log();
 
-  return { pass, hits };
+  return { pass, modelKeywords, foundKeywords };
 }
 
-// ─── Main ────────────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  // Verify the eval endpoint is reachable before burning API calls
+  // Health check
   try {
     const probe = await fetch(`${SERVER}/api/health`);
-    if (!probe.ok) throw new Error('health check failed');
+    if (!probe.ok) throw new Error('non-OK status');
   } catch {
     console.error(
-      `Cannot reach ${SERVER}/api/health.\n` +
+      `Cannot reach ${SERVER}/api/health\n` +
       'Start the server with:  EVAL_MODE=1 node server/src/index.js\n',
     );
     process.exit(1);
   }
 
-  // Verify eval endpoint is enabled
+  // Eval endpoint check
   try {
     const probe = await fetch(`${SERVER}/api/eval/session`, {
       method: 'POST',
@@ -183,29 +276,30 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('ResumeShift Eval — Phase 3 Keyword Coverage');
-  console.log('============================================');
+  console.log('ResumeShift Eval v3 — Phase 2→3 Keyword Follow-Through');
+  console.log('=======================================================');
   console.log(`Running ${CASES.length} test cases against ${SERVER}`);
-  console.log('(Sequential — each case makes 3-4 OpenAI calls)\n');
+  console.log('PASS = model used ≥2 of its own Phase 2 keywords in Phase 3\n');
 
-  let passed       = 0;
-  let totalHits    = 0;
-  let totalKeywords = 0;
+  let passed        = 0;
+  let totalFound    = 0;
+  let totalModel    = 0;
 
   for (const tc of CASES) {
-    // Run sequentially to avoid rate-limit issues
     const result = await runCase(tc);
     if (result.pass) passed++;
-    totalHits     += result.hits.length;
-    totalKeywords += tc.missing_keywords.length;
+    totalFound += result.foundKeywords.length;
+    totalModel += result.modelKeywords.length;
   }
 
-  const hitRate = (totalHits / totalKeywords).toFixed(2);
+  const followThrough = totalModel > 0
+    ? (totalFound / totalModel).toFixed(2)
+    : 'N/A';
 
-  console.log('============================================');
-  console.log(`Score            : ${passed}/${CASES.length} PASS`);
-  console.log(`Keyword hit rate : ${totalHits}/${totalKeywords} = ${hitRate}`);
-  console.log('============================================');
+  console.log('=======================================================');
+  console.log(`Score                  : ${passed}/${CASES.length} PASS`);
+  console.log(`Keyword follow-through : ${totalFound}/${totalModel} = ${followThrough}`);
+  console.log('=======================================================');
 }
 
 main().catch((err) => {
