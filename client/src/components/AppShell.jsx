@@ -5,13 +5,15 @@ import './AppShell.css';
 
 /* ─── helpers ─────────────────────────────────────────────── */
 
+// Short user messages that are quick replies render as muted pill chips
+const QUICK_REPLY_PATTERN = /^(yes|yes, show me|no|no thanks|skip|no jd)$/i;
+
 function ChatMessage({ msg, onQuickReply }) {
   const isUser = msg.role === 'user';
 
   if (msg.isAdjacentPrompt) {
     return (
       <div className="cm cm--assistant">
-        <span className="cm__avatar" aria-hidden="true">RS</span>
         <div className="cm__prompt-block">
           <p className="cm__text">{msg.content}</p>
           <div className="cm__quick-replies">
@@ -27,9 +29,17 @@ function ChatMessage({ msg, onQuickReply }) {
     );
   }
 
+  // User quick-reply chip
+  if (isUser && QUICK_REPLY_PATTERN.test(msg.content.trim())) {
+    return (
+      <div className="cm cm--user-chip">
+        <span className="cm__chip">{msg.content}</span>
+      </div>
+    );
+  }
+
   return (
     <div className={`cm ${isUser ? 'cm--user' : 'cm--assistant'}`}>
-      {!isUser && <span className="cm__avatar" aria-hidden="true">RS</span>}
       <p className="cm__text">
         {msg.content.split('\n').map((line, i, arr) => (
           <React.Fragment key={i}>
@@ -275,7 +285,6 @@ export default function AppShell({ onNewSession }) {
             ))}
             {loadingStatus && (
               <div className="cm cm--assistant">
-                <span className="cm__avatar" aria-hidden="true">RS</span>
                 <span className="cm__status">
                   <span className="status-dot" aria-hidden="true" />
                   {loadingStatus}

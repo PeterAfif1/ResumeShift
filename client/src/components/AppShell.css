@@ -59,8 +59,8 @@
 
 /* ── Left panel ── */
 .left-panel {
-  width: var(--left-w);
-  min-width: 300px;
+  width: 45%;
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
@@ -82,7 +82,7 @@
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
-  max-width: 88%;
+  max-width: 92%;
 }
 
 .cm--user {
@@ -92,22 +92,14 @@
 
 .cm--assistant {
   align-self: flex-start;
+  /* Left border accent replaces the RS avatar */
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--accent-dim);
 }
 
+/* Avatar is hidden — kept in DOM for the loading status indicator only */
 .cm__avatar {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent-dim);
-  color: var(--accent-text);
-  font-size: 0.6rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: 0.02em;
-  margin-top: 1px;
+  display: none;
 }
 
 .cm__text {
@@ -121,6 +113,23 @@
   font-weight: 500;
 }
 
+/* Quick-reply chip — for short user responses like "skip", "Yes", "No thanks" */
+.cm--user-chip {
+  align-self: flex-end;
+}
+
+.cm__chip {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem;
+  line-height: 1.4;
+}
+
 .cm__status {
   display: flex;
   align-items: center;
@@ -128,6 +137,11 @@
   font-size: 0.82rem;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* The loading status row reuses cm--assistant but shouldn't have the border */
+.cm--assistant:has(.cm__status) {
+  border-left-color: transparent;
 }
 
 .status-dot {
@@ -225,23 +239,23 @@
 /* ── Input area ── */
 .input-area {
   border-top: 1px solid var(--border);
-  padding: 0.75rem 1rem 0.85rem;
+  padding: 0.85rem 1rem 1rem;
   background: var(--surface);
   flex-shrink: 0;
 }
 
 .pill-row {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.2rem 0.55rem 0.2rem 0.45rem;
-  border-radius: 4px;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem 0.35rem 0.6rem;
+  border-radius: 6px;
   max-width: 100%;
 }
 
@@ -255,11 +269,11 @@
   background: none;
   border: none;
   color: inherit;
-  opacity: 0.6;
-  font-size: 0.9rem;
+  opacity: 0.55;
+  font-size: 1rem;
   line-height: 1;
   padding: 0 0.1rem;
-  margin-left: 0.1rem;
+  margin-left: 0.15rem;
   transition: opacity 0.15s;
 }
 
@@ -283,11 +297,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  padding: 0.6rem 0.75rem;
+  padding: 0.75rem 1rem;
   font-size: 0.875rem;
   resize: none;
   line-height: 1.5;
-  max-height: 120px;
+  min-height: 48px;
+  max-height: 140px;
   overflow-y: auto;
   transition: border-color 0.15s;
 }
@@ -302,8 +317,8 @@
 
 /* Icon buttons */
 .icon-btn {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-2);
