@@ -117,7 +117,7 @@ async function phase15IsComplete(conversationMessages) {
         ...conversationMessages,
       ],
       temperature: 0,
-      max_tokens: 2000, // JD text can be long
+      max_tokens: 4000, // JD text can be long
     });
     const raw = res.choices[0].message.content.trim();
     console.log('[classifier/p1.5] raw response (first 120 chars):', raw.slice(0, 120));
