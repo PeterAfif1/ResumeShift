@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { uploadResume, swapResume, sendMessage } from '../api';
 import ResultsPanel from './ResultsPanel';
 import './AppShell.css';
@@ -15,7 +16,9 @@ function ChatMessage({ msg, onQuickReply }) {
     return (
       <div className="cm cm--assistant">
         <div className="cm__prompt-block">
-          <p className="cm__text">{msg.content}</p>
+          <div className="cm__text cm__text--md">
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
+          </div>
           <div className="cm__quick-replies">
             <button className="qr-btn qr-btn--yes" onClick={() => onQuickReply('Yes')}>
               Yes, show me
@@ -40,13 +43,13 @@ function ChatMessage({ msg, onQuickReply }) {
 
   return (
     <div className={`cm ${isUser ? 'cm--user' : 'cm--assistant'}`}>
-      <p className="cm__text">
-        {msg.content.split('\n').map((line, i, arr) => (
-          <React.Fragment key={i}>
-            {line}{i < arr.length - 1 && <br />}
-          </React.Fragment>
-        ))}
-      </p>
+      {isUser ? (
+        <p className="cm__text">{msg.content}</p>
+      ) : (
+        <div className="cm__text cm__text--md">
+          <ReactMarkdown>{msg.content}</ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }

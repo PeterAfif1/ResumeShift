@@ -108,6 +108,91 @@
   color: var(--text-2);
 }
 
+/* Markdown container — resets browser defaults for elements react-markdown renders */
+.cm__text--md {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--text-2);
+}
+
+.cm__text--md p {
+  margin: 0 0 0.5em;
+}
+
+.cm__text--md p:last-child {
+  margin-bottom: 0;
+}
+
+.cm__text--md ul,
+.cm__text--md ol {
+  margin: 0.25em 0 0.5em 1.25em;
+  padding: 0;
+}
+
+.cm__text--md li {
+  margin-bottom: 0.2em;
+}
+
+.cm__text--md strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cm__text--md em {
+  font-style: italic;
+}
+
+.cm__text--md code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.82em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+}
+
+.cm__text--md pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  overflow-x: auto;
+  margin: 0.4em 0;
+}
+
+.cm__text--md pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.82em;
+}
+
+.cm__text--md h1,
+.cm__text--md h2,
+.cm__text--md h3 {
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.6em 0 0.3em;
+  line-height: 1.3;
+}
+
+.cm__text--md h1 { font-size: 1rem; }
+.cm__text--md h2 { font-size: 0.95rem; }
+.cm__text--md h3 { font-size: 0.9rem; }
+
+.cm__text--md a {
+  color: var(--accent-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cm__text--md blockquote {
+  border-left: 3px solid var(--border-2);
+  margin: 0.4em 0;
+  padding-left: 0.75rem;
+  color: var(--text-muted);
+}
+
 .cm--user .cm__text {
   color: var(--accent-text);
   font-weight: 500;
