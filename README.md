@@ -14,7 +14,6 @@ AI-powered resume analyzer and rewriter for CS students and recent grads.
 ### 1. Install dependencies
 
 ```bash
-npm install
 npm install --prefix server
 npm install --prefix client
 ```
@@ -45,6 +44,18 @@ cd client && npm run dev
 ```
 
 Then open [http://localhost:5173](http://localhost:5173).
+
+## Running the eval
+
+```bash
+# Terminal 1 — start server in eval mode
+cd server && EVAL_MODE=1 node src/index.js
+
+# Terminal 2 — run eval
+node eval/run_eval.js
+```
+
+Requires the server to be running. Outputs per-case results and final `keyword_hit_rate` score.
 
 ## How it works
 
