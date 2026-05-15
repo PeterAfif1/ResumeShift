@@ -9,9 +9,13 @@ import './AppShell.css';
 // Short user messages that are quick replies render as muted pill chips
 const QUICK_REPLY_PATTERN = /^(yes|yes, show me|no|no thanks|skip|no jd)$/i;
 
+// Detect the Phase 1.5 JD prompt so we can render a Skip button
+const JD_PROMPT_PATTERN = /paste it here or type ['']?skip['']?/i;
+
 function ChatMessage({ msg, onQuickReply }) {
   const isUser = msg.role === 'user';
 
+  // Adjacent-roles yes/no prompt
   if (msg.isAdjacentPrompt) {
     return (
       <div className="cm cm--assistant">
@@ -25,6 +29,24 @@ function ChatMessage({ msg, onQuickReply }) {
             </button>
             <button className="qr-btn qr-btn--no" onClick={() => onQuickReply('No thanks')}>
               No thanks
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Phase 1.5 JD prompt — show the message plus a Skip button (until answered)
+  if (!isUser && !msg.jdPromptAnswered && JD_PROMPT_PATTERN.test(msg.content)) {
+    return (
+      <div className="cm cm--assistant">
+        <div className="cm__prompt-block">
+          <div className="cm__text cm__text--md">
+            <ReactMarkdown>{msg.content}</ReactMarkdown>
+          </div>
+          <div className="cm__quick-replies">
+            <button className="qr-btn qr-btn--no" onClick={() => onQuickReply('skip')}>
+              Skip
             </button>
           </div>
         </div>
@@ -104,6 +126,14 @@ export default function AppShell({ onNewSession }) {
   const inputRef   = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Auto-resize textarea to fit content, up to 200px
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [input]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loadingStatus]);
@@ -116,45 +146,68 @@ export default function AppShell({ onNewSession }) {
   }, [results]);
 
   /**
+   * Extract JSON from content that may be fenced (```json...```) or bare.
+   * Returns the raw JSON string, or null if nothing JSON-like is found.
+   */
+  function extractJSON(content) {
+    // 1. Fenced block
+    const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenceMatch) return fenceMatch[1].trim();
+    // 2. Bare object spanning most of the content
+    const objMatch = content.match(/(\{[\s\S]*\})/);
+    if (objMatch) return objMatch[1].trim();
+    return null;
+  }
+
+  /**
    * Process an array of turns from the server.
    * Plain-text turns → chat messages column.
    * Structured turns (phase 2/3/4) → results panel only, never chat.
    * isAdjacentPrompt turns → chat messages column with quick-reply buttons.
+   *
+   * Detection is unconditional — any turn whose content parses to an object
+   * with overall_score / rewrites / adjacent_roles is routed to the results
+   * panel regardless of phase state or turn index.
    */
   function processTurns(turns, warning) {
     const newChatMsgs = [];
     const newResults  = [];
 
     for (const turn of turns) {
+      // ── Primary path: server already detected and tagged the phase ──────
       if (turn.phase && turn.parsed) {
-        // Structured phase card — right panel only
         newResults.push({ phase: turn.phase, parsed: turn.parsed });
-      } else {
-        // Client-side safety net: if the content looks like raw JSON
-        // (starts with { after stripping fences), don't show it in chat.
-        const trimmed = turn.content.replace(/```(?:json)?/gi, '').trim();
-        const looksLikeJSON = trimmed.startsWith('{') && trimmed.endsWith('}');
-        if (looksLikeJSON) {
-          // Try to parse and route it ourselves
+        continue;
+      }
+
+      // ── Safety net: try to extract and classify JSON from the content ───
+      // Handles cases where the server's detectPhase() returned null but the
+      // model still emitted valid structured JSON (e.g. fenced, or with prose
+      // around it). This is the path Phase 4 falls into when the server
+      // returns phase: null for the adjacent_roles response.
+      if (turn.content) {
+        const raw = extractJSON(turn.content);
+        if (raw) {
           try {
-            const parsed = JSON.parse(trimmed);
+            const parsed = JSON.parse(raw);
             const phase =
-              parsed.overall_score !== undefined ? 2 :
-              parsed.rewrites !== undefined ? 3 :
+              parsed.overall_score  !== undefined ? 2 :
+              parsed.rewrites       !== undefined ? 3 :
               parsed.adjacent_roles !== undefined ? 4 : null;
             if (phase) {
               newResults.push({ phase, parsed });
               continue;
             }
-          } catch { /* fall through to chat */ }
+          } catch { /* not valid JSON — fall through to chat */ }
         }
-
-        newChatMsgs.push({
-          role: 'assistant',
-          content: turn.content,
-          isAdjacentPrompt: turn.isAdjacentPrompt || false,
-        });
       }
+
+      // ── Plain text or adjacent-roles prompt → chat column ───────────────
+      newChatMsgs.push({
+        role: 'assistant',
+        content: turn.content,
+        isAdjacentPrompt: turn.isAdjacentPrompt || false,
+      });
     }
 
     if (warning) {
@@ -244,8 +297,16 @@ export default function AppShell({ onNewSession }) {
   }
 
   async function handleQuickReply(text) {
+    // Dismiss any prompt buttons (adjacent-roles or JD skip) by marking them answered
     setMessages((prev) =>
-      prev.map((m) => (m.isAdjacentPrompt ? { ...m, isAdjacentPrompt: false } : m)),
+      prev.map((m) => {
+        if (m.isAdjacentPrompt) return { ...m, isAdjacentPrompt: false };
+        if (!m.role || m.role !== 'user') {
+          // Dismiss the JD prompt button once the user has responded
+          if (JD_PROMPT_PATTERN.test(m.content || '')) return { ...m, jdPromptAnswered: true };
+        }
+        return m;
+      }),
     );
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
     startLoadingCycle();

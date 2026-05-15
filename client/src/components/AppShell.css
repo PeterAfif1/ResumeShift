@@ -386,8 +386,8 @@
   font-size: 0.875rem;
   resize: none;
   line-height: 1.5;
-  min-height: 48px;
-  max-height: 140px;
+  height: 48px;       /* initial single-line height — JS overrides this */
+  max-height: 200px;  /* JS caps scrollHeight at 200px; overflow scrolls */
   overflow-y: auto;
   transition: border-color 0.15s;
 }
