@@ -4,7 +4,7 @@
 
 ResumeShift is an AI-powered resume analyzer and rewriter built for CS students and recent grads who are actively applying to jobs. The core problem it solves is specific: most students waste hours manually tweaking their resume for every application without knowing which keywords to target, which bullets are weak, or which roles they actually qualify for. ResumeShift automates that process — upload a PDF resume, answer a few questions about your target role, and get a scored line-level analysis, rewritten bullets, and a list of adjacent roles you realistically qualify for.
 
-The app uses GPT-4o in a stateful multi-turn conversation across four phases: goal extraction, resume analysis, bullet rewrites, and adjacent role matching. The user can optionally paste a job description to ground the analysis against a specific posting rather than a general role inference.
+The app uses GPT-4o in a stateful multi-turn conversation across four phases: goal extraction (plus an optional job description step), resume analysis, bullet rewrites, and adjacent role matching. The user can optionally paste a job description to ground the analysis against a specific posting rather than a general role inference.
 
 What makes the AI behavior hard to get right is the gap between instruction and execution. Telling the model to "add missing keywords" produces paraphrases and synonyms, not the exact phrases that ATS systems and recruiters scan for. Getting the model to use verbatim keyword phrases consistently — across varied resume styles, different target roles, and both CS and non-CS fields — required multiple prompt iterations and a measurable eval framework to verify. A single prompt call also cannot work here: each phase depends on the output of the previous one. The goals must come before the analysis, the analysis must come before the rewrites, and the adjacent role suggestions depend on what gaps were found — not just the raw resume.
 
@@ -60,19 +60,31 @@ Conclusion: The feature improves real-world usefulness — JD grounding produces
 
 ---
 
+### V5 — Post-Analysis Conversation Quality
+
+Change: Rewrote the POST-ANALYSIS CONVERSATION section of the system prompt to enforce blunt, direct responses and prevent hallucination of resume details.
+
+Motivating example: After Phase 3 completed, asking "Should I replace my capstone with this project?" returned a generic numbered list with fabricated metrics ("increasing keyword hit rate by 20%") despite no such number existing in the resume or analysis.
+
+Delta: Replaced the neutral free-form instructions with explicit behavioral rules: answer directly in the first sentence, no numbered lists, no hedging, reference actual resume content only, and ask clarifying questions before writing bullets for projects not in the resume.
+
+Conclusion: Responses became specific and direct. Hallucinated metrics no longer appear, the model now asks for details before generating bullets for projects it has no data on.
+
+---
+
 ## Part 3: Code Walkthrough
 
 A user uploads a PDF and types "Junior Full-Stack Engineer, new grad, actively applying, skip JD." Here is how the code handles it end to end.
 
-upload.js (line ~15) receives the multipart PDF via multer, extracts text using pdf-parse, creates a session UUID via sessionStore.js, and stores the resume text in the in-memory session Map. It returns the sessionId to the client.
+upload.js (lines ~28–36) receives the multipart PDF via multer, extracts text using pdf-parse, creates a session UUID via sessionStore.js, and stores the resume text in the in-memory session Map. It returns the sessionId to the client.
 
-AppShell.jsx (line ~80) stores the session ID and sends the user's first message to POST /api/chat. chat.js (line ~40) calls ensureResumeInjected() which checks the session's resumeInjected flag — false on the first turn — and injects the resume text as a user message into the OpenAI message history. This happens once per session.
+AppShell.jsx (line ~57) declares the session ID state. After upload (line ~183), the session ID is stored and Phase 1 Q&A begins when the user sends their first message (line ~226). chat.js defines ensureResumeInjected() at line ~52, which checks the session's resumeInjected flag and is called on every turn; it injects the resume text as a user message into the OpenAI message history exactly once per session.
 
-The main OpenAI call returns a Phase 1 response asking for goals. After the user provides all three, chat.js (line ~95) calls phase1IsComplete() — a cheap gpt-4o-mini classifier call with temperature 0 and max_tokens 20 that returns complete true or false. When complete, runPhase2() fires automatically, followed immediately by runPhase3().
+The main OpenAI call returns a Phase 1 response asking for goals. After the user provides all three, chat.js calls phase1IsComplete() — defined at line ~64 and invoked in the route handler at line ~313 — a cheap gpt-4o-mini classifier call with temperature 0 and max_tokens 20 that returns complete true or false. When complete, runPhase2() fires automatically, followed immediately by runPhase3().
 
 The design decision to use a classifier instead of regex to detect Phase 1 completion was intentional. Regex would fail on inputs like "new grad targeting SWE intern, actively applying" where all three fields are in one sentence with no clear delimiter. The classifier handles natural language variation that regex cannot. The alternative considered was a structured form for Phase 1 instead of free-text chat — rejected because it would remove the conversational feel and be harder to demo.
 
-Phase 2 and Phase 3 JSON responses are detected client-side in AppShell.jsx (line ~140) by checking for overall_score and rewrites keys. They are routed to the results panel, never the chat column.
+Phase 2 and Phase 3 JSON responses are detected client-side in AppShell.jsx around line ~140 by checking for overall_score and rewrites keys. They are routed to the results panel, never the chat column.
 
 ---
 
