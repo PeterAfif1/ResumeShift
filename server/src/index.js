@@ -10,7 +10,7 @@ const evalSessionRouter = require('./routes/evalSession');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
 app.use(express.json());
 
 app.use('/api/upload', uploadRouter);
