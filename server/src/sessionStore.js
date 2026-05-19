@@ -6,9 +6,10 @@
 
 const sessions = new Map();
 
-function createSession(sessionId, resumeText) {
+function createSession(sessionId, resumeText, resumeProfile = null) {
   sessions.set(sessionId, {
     resumeText,
+    resumeProfile,          // structured extraction: { experience, education, skills, projects }
     resumeInjected: false,  // true once resume text is persisted in messages
     phase2Complete: false,  // true once Phase 2 analysis has run
     jobDescription: null,   // string if user pasted a JD, null if skipped or not yet asked
@@ -32,10 +33,17 @@ function updateResumeText(sessionId, resumeText) {
   const session = sessions.get(sessionId);
   if (!session) throw new Error(`Session ${sessionId} not found`);
   session.resumeText = resumeText;
+  session.resumeProfile = null;   // cleared until re-extracted by swapResume
   session.resumeInjected = false; // re-inject new resume on next turn
   session.phase2Complete = false; // allow re-analysis with new resume
   session.jobDescription = null;  // clear JD — user should re-provide for new resume
   session.jdInjected = false;
+}
+
+function updateResumeProfile(sessionId, resumeProfile) {
+  const session = sessions.get(sessionId);
+  if (!session) throw new Error(`Session ${sessionId} not found`);
+  session.resumeProfile = resumeProfile;
 }
 
 function updateJobDescription(sessionId, jobDescription) {
@@ -54,6 +62,7 @@ module.exports = {
   getSession,
   appendMessage,
   updateResumeText,
+  updateResumeProfile,
   updateJobDescription,
   deleteSession,
 };

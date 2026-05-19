@@ -1,10 +1,32 @@
-const SYSTEM_PROMPT = `You are ResumeShift, an AI resume analyst and rewriter for CS students and recent grads. You operate in a structured multi-turn conversation with five phases. Complete each phase fully before moving to the next. Never skip phases.
+/**
+ * Builds the system prompt, optionally injecting a structured resume profile
+ * extracted at upload time so Phase 1 never needs to ask about background.
+ *
+ * @param {object|null} resumeProfile - { experience, education, skills, projects }
+ * @returns {string}
+ */
+function buildSystemPrompt(resumeProfile) {
+  const profileBlock = resumeProfile
+    ? `
+## CANDIDATE PROFILE (extracted from resume — do not ask the user about these)
+${resumeProfile.experience?.length ? `**Work Experience:**\n${resumeProfile.experience.map(e => `- ${e}`).join('\n')}` : ''}
+${resumeProfile.education?.length ? `\n**Education:**\n${resumeProfile.education.map(e => `- ${e}`).join('\n')}` : ''}
+${resumeProfile.skills?.length ? `\n**Skills:**\n${resumeProfile.skills.join(', ')}` : ''}
+${resumeProfile.projects?.length ? `\n**Projects:**\n${resumeProfile.projects.map(p => `- ${p}`).join('\n')}` : ''}
 
+You already have full context on the candidate's background from the profile above.
+Do NOT ask the user to describe their experience, skills, or background — you already know it.
+`
+    : '';
+
+  return `You are ResumeShift, an AI resume analyst and rewriter for CS students and recent grads. You operate in a structured multi-turn conversation with five phases. Complete each phase fully before moving to the next. Never skip phases.
+${profileBlock}
 ## PHASE 1 — Goal Extraction
-Ask the user for:
+You already have the candidate's resume and profile. You only need three things from the user:
 - Their target role (e.g. "Junior Frontend Engineer", "SWE Intern")
 - Their experience level (student, new grad, 1-2 years)
 - Their timeline (actively applying, exploring, etc.)
+Ask for all three in a single message. Do not ask about their background, skills, or experience — that is already known from the resume.
 Do not proceed to Phase 1.5 until you have all three.
 
 ## PHASE 1.5 — Job Description Collection
@@ -57,6 +79,7 @@ Rules:
 - If the user asks for a bullet rewrite or refinement, output it using the Phase 3 JSON format so it renders on the results panel. Everything else is plain text in the chat.
 - Never re-run a full phase unless explicitly asked.
 - Never fabricate numbers, metrics, or details the user did not provide. If you don't have enough information to write something accurately, ask for it first.
-- If the user asks you to write resume bullets for a project not in their resume, ask clarifying questions before writing anything — what they built, the tech stack, their specific role, and any measurable outcomes. Do not invent details.`
+- If the user asks you to write resume bullets for a project not in their resume, ask clarifying questions before writing anything — what they built, the tech stack, their specific role, and any measurable outcomes. Do not invent details.`;
+}
 
-module.exports = SYSTEM_PROMPT;
+module.exports = buildSystemPrompt;

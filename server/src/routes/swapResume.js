@@ -1,9 +1,11 @@
 const express = require('express');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
-const { getSession, updateResumeText, appendMessage } = require('../sessionStore');
+const OpenAI = require('openai');
+const { getSession, updateResumeText, updateResumeProfile, appendMessage } = require('../sessionStore');
 
 const router = express.Router({ mergeParams: true });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -46,6 +48,36 @@ router.post('/', upload.single('resume'), async (req, res) => {
 
     // Update the session's resume text so future chat calls use it
     updateResumeText(sessionId, resumeText);
+
+    // Re-extract structured profile for the new resume (non-fatal if it fails)
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a resume parser. Extract structured data from the resume text and return ONLY valid JSON with this exact shape:\n' +
+              '{\n' +
+              '  "experience": ["<role> at <company> — <1-line summary>", ...],\n' +
+              '  "education": ["<degree> in <field> from <school> (<year>)", ...],\n' +
+              '  "skills": ["skill1", "skill2", ...],\n' +
+              '  "projects": ["<project name> — <1-line summary>", ...]\n' +
+              '}\n' +
+              'Keep each entry concise (one line). Include all entries present. Return empty arrays if a section is absent. No markdown, no prose — raw JSON only.',
+          },
+          { role: 'user', content: resumeText },
+        ],
+        temperature: 0,
+        max_tokens: 1000,
+      });
+      const raw = completion.choices[0].message.content.trim();
+      const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+      updateResumeProfile(sessionId, JSON.parse(jsonStr));
+      console.log('[swapResume] profile re-extracted');
+    } catch (err) {
+      console.error('[swapResume] profile extraction failed (non-fatal):', err.message);
+    }
 
     // Inject the new resume into the conversation history so the model
     // sees it in context — same pattern as the initial first-message injection.

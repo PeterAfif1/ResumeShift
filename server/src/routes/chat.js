@@ -1,6 +1,6 @@
 const express = require('express');
 const OpenAI = require('openai');
-const SYSTEM_PROMPT = require('../systemPrompt');
+const buildSystemPrompt = require('../systemPrompt');
 const { getSession, appendMessage, updateJobDescription } = require('../sessionStore');
 
 const router = express.Router();
@@ -157,7 +157,7 @@ async function runPhase2(session, sessionId) {
     'I have provided my goals and my resume is above. Please proceed with Phase 2 — output the full resume analysis JSON.',
   );
 
-  const openaiMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...session.messages];
+  const openaiMessages = [{ role: 'system', content: buildSystemPrompt(session.resumeProfile) }, ...session.messages];
   console.log('[phase2] sending to OpenAI — context:', openaiMessages.length, 'messages');
 
   const completion = await openai.chat.completions.create({
@@ -188,7 +188,7 @@ async function runPhase3(session, sessionId) {
     'Now proceed with Phase 3. Rewrite every flagged bullet from the Phase 2 analysis above. Output the rewrites JSON.',
   );
 
-  const openaiMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...session.messages];
+  const openaiMessages = [{ role: 'system', content: buildSystemPrompt(session.resumeProfile) }, ...session.messages];
   console.log('[phase3] sending to OpenAI — context:', openaiMessages.length, 'messages');
 
   const completion = await openai.chat.completions.create({
@@ -249,7 +249,7 @@ router.post('/', async (req, res) => {
   let firstContent, firstPhase;
 
   try {
-    const openaiMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...session.messages];
+    const openaiMessages = [{ role: 'system', content: buildSystemPrompt(session.resumeProfile) }, ...session.messages];
     console.log('[chat] calling OpenAI — context:', openaiMessages.length, 'messages');
 
     const completion = await openai.chat.completions.create({
