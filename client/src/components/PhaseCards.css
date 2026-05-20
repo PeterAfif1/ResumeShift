@@ -1,3 +1,195 @@
+/* ── Score ring (Phase 2 hero) ── */
+.score-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--score-bg, var(--surface-2));
+  border: 1px solid var(--score-border, var(--border));
+  border-radius: var(--radius);
+}
+
+.score-ring-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.score-ring-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.score-ring-num {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--score-color, var(--text));
+}
+
+.score-ring-denom {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  margin-top: 1px;
+}
+
+.score-hero-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.score-verdict {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+/* ── Phase 2 summary ── */
+.p2-summary {
+  font-size: 0.875rem;
+  color: var(--text-2);
+  line-height: 1.7;
+  padding: 0.1rem 0;
+}
+
+/* ── Gap severity badges ── */
+.sev {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  border: 1px solid;
+  flex-shrink: 0;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+.sev--high {
+  background: var(--red-bg);
+  color: var(--red);
+  border-color: var(--red-border);
+}
+
+.sev--med {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+  border-color: var(--yellow-border);
+}
+
+.sev--low {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border-color: var(--border-2);
+}
+
+/* ── Gap list ── */
+.gap-list { gap: 0.55rem; }
+
+.gap-item {
+  font-size: 0.82rem;
+  color: var(--text-2);
+  line-height: 1.5;
+  padding-left: 0 !important;   /* override col-block__list indent */
+}
+
+.gap-item::before { display: none !important; }  /* remove the – bullet */
+
+/* ── Flagged bullet cards ── */
+.bullet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.bullet-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+/* Left accent stripe by severity */
+.bullet-card--high { border-left: 3px solid var(--red); }
+.bullet-card--med  { border-left: 3px solid var(--yellow); }
+.bullet-card--low  { border-left: 3px solid var(--border-2); }
+
+.bullet-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem 0.5rem;
+}
+
+.bullet-card__original {
+  font-size: 0.82rem;
+  color: var(--text-2);
+  line-height: 1.55;
+  flex: 1;
+}
+
+.bullet-card__issue {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0 0.9rem 0.65rem;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+.bullet-card__issue-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--red);
+  flex-shrink: 0;
+}
+
+.bullet-card__issue-text {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.bullet-card__footer {
+  padding: 0.5rem 0.9rem 0.65rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.bullet-card__kw-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-text);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.bullet-card__kw-toggle:hover { opacity: 0.75; }
+
 /* ── Card shell ── */
 .card {
   background: var(--surface);
