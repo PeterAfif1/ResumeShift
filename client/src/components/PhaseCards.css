@@ -199,6 +199,12 @@
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  animation: cardEnter 0.25s ease both;
+}
+
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .card__header {
