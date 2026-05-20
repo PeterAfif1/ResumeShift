@@ -261,6 +261,16 @@
   flex-direction: row-reverse;
 }
 
+.cm--user .cm__text {
+  background: var(--accent-dim);
+  border: 1px solid #c7d2fe;
+  border-radius: var(--radius-sm);
+  border-bottom-right-radius: 2px;
+  padding: 0.55rem 0.85rem;
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
 .cm--assistant {
   align-self: flex-start;
   /* Left border accent replaces the RS avatar */
@@ -362,11 +372,6 @@
   margin: 0.4em 0;
   padding-left: 0.75rem;
   color: var(--text-muted);
-}
-
-.cm--user .cm__text {
-  color: var(--accent-text);
-  font-weight: 500;
 }
 
 /* Quick-reply chip — for short user responses like "skip", "Yes", "No thanks" */
