@@ -76,6 +76,86 @@ function ChatMessage({ msg, onQuickReply }) {
   );
 }
 
+/* ─── DropZone ────────────────────────────────────────────── */
+
+function DropZone({ onFile, loading, error }) {
+  const [dragging, setDragging] = useState(false);
+  const zoneInputRef = useRef(null);
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    setDragging(true);
+  }
+
+  function handleDragLeave(e) {
+    // Only clear if leaving the zone itself, not a child element
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragging(false);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) onFile(file);
+  }
+
+  function handleInputChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) onFile(file);
+  }
+
+  return (
+    <div
+      className={`drop-zone ${dragging ? 'drop-zone--over' : ''} ${loading ? 'drop-zone--loading' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      onClick={() => !loading && zoneInputRef.current?.click()}
+      role="button"
+      tabIndex={0}
+      aria-label="Upload resume PDF — click or drag and drop"
+      onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? zoneInputRef.current?.click() : null}
+    >
+      <input
+        ref={zoneInputRef}
+        type="file"
+        accept="application/pdf"
+        style={{ display: 'none' }}
+        onChange={handleInputChange}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+
+      {loading ? (
+        <div className="drop-zone__inner">
+          <span className="spinner drop-zone__spinner" aria-hidden="true" />
+          <p className="drop-zone__label">Uploading…</p>
+        </div>
+      ) : (
+        <div className="drop-zone__inner">
+          <div className="drop-zone__icon" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect x="4" y="4" width="24" height="28" rx="3"
+                stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M10 4v6a1 1 0 001 1h6" stroke="currentColor" strokeWidth="1.5"
+                strokeLinecap="round"/>
+              <path d="M16 17v8M12 21l4-4 4 4"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <p className="drop-zone__label">
+            {dragging ? 'Drop to upload' : 'Drop your resume here'}
+          </p>
+          <p className="drop-zone__sub">or <span className="drop-zone__browse">click to browse</span></p>
+          <p className="drop-zone__hint">PDF only · max 10 MB</p>
+          {error && <p className="drop-zone__error" role="alert">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── PhaseProgress ───────────────────────────────────────── */
 
 const PHASES = [
@@ -255,9 +335,7 @@ export default function AppShell({ onNewSession }) {
   }
 
   /* ── attach PDF ── */
-  async function handleAttach(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
+  async function handleFile(file) {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
@@ -270,18 +348,12 @@ export default function AppShell({ onNewSession }) {
 
     try {
       if (!sessionId) {
-        // First resume — create a new session via /upload
         const { sessionId: newId } = await uploadResume(file);
         setSessionId(newId);
         setAttachedFile({ name: file.name });
-        // No kickoff message — the model's opening greeting already stands.
-        // Phase 1 Q&A starts when the user types their first message.
       } else {
-        // Subsequent resume — swap via /session/:id/resume
         const { fileName } = await swapResume(sessionId, file);
         setAttachedFile({ name: fileName || file.name });
-
-        // Inject into server history; mirror a clean assistant ack in the UI
         setMessages((prev) => [
           ...prev,
           {
@@ -297,6 +369,12 @@ export default function AppShell({ onNewSession }) {
       setAttachLoading(false);
       inputRef.current?.focus();
     }
+  }
+
+  function handleAttach(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    handleFile(file);
   }
 
   /* ── send message ── */
@@ -388,100 +466,108 @@ export default function AppShell({ onNewSession }) {
 
           <PhaseProgress currentPhase={currentPhase} />
 
-          <div className="chat-messages" aria-live="polite">
-            {messages.map((msg, i) => (
-              <ChatMessage key={i} msg={msg} onQuickReply={handleQuickReply} />
-            ))}
-            {loadingStatus && (
-              <div className="cm cm--assistant">
-                <span className="cm__status">
-                  <span className="typing-dots" aria-hidden="true">
-                    <span /><span /><span />
-                  </span>
-                  {loadingStatus}
-                </span>
+          {!sessionId ? (
+            /* ── Pre-upload: full drop zone ── */
+            <DropZone
+              onFile={handleFile}
+              loading={attachLoading}
+              error={attachError}
+            />
+          ) : (
+            /* ── Post-upload: chat + input ── */
+            <>
+              <div className="chat-messages" aria-live="polite">
+                {messages.map((msg, i) => (
+                  <ChatMessage key={i} msg={msg} onQuickReply={handleQuickReply} />
+                ))}
+                {loadingStatus && (
+                  <div className="cm cm--assistant">
+                    <span className="cm__status">
+                      <span className="typing-dots" aria-hidden="true">
+                        <span /><span /><span />
+                      </span>
+                      {loadingStatus}
+                    </span>
+                  </div>
+                )}
+                {chatError && (
+                  <p className="chat-err" role="alert">⚠ {chatError}</p>
+                )}
+                <div ref={bottomRef} />
               </div>
-            )}
-            {chatError && (
-              <p className="chat-err" role="alert">⚠ {chatError}</p>
-            )}
-            <div ref={bottomRef} />
-          </div>
 
-          {/* Input area */}
-          <div className="input-area">
-            {/* Pill */}
-            {attachedFile && (
-              <div className="pill-row">
-                <span className="pill pill--green">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                    <path d="M2 6.5L4.5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  {attachedFile.name}
+              {/* Input area */}
+              <div className="input-area">
+                {attachedFile && (
+                  <div className="pill-row">
+                    <span className="pill pill--green">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                        <path d="M2 6.5L4.5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {attachedFile.name}
+                      <button
+                        className="pill__dismiss"
+                        onClick={() => setAttachedFile(null)}
+                        aria-label="Dismiss"
+                      >×</button>
+                    </span>
+                  </div>
+                )}
+                {attachError && (
+                  <p className="attach-err" role="alert">{attachError}</p>
+                )}
+
+                <div className="input-row">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleAttach}
+                    aria-hidden="true"
+                  />
+
                   <button
-                    className="pill__dismiss"
-                    onClick={() => setAttachedFile(null)}
-                    aria-label="Dismiss"
-                  >×</button>
-                </span>
-              </div>
-            )}
-            {attachError && (
-              <p className="attach-err" role="alert">{attachError}</p>
-            )}
+                    className="icon-btn attach-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!!loadingStatus || attachLoading}
+                    aria-label="Attach resume PDF"
+                    title="Attach resume (PDF)"
+                  >
+                    {attachLoading
+                      ? <span className="spinner" aria-hidden="true" />
+                      : <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+                        </svg>
+                    }
+                  </button>
 
-            <div className="input-row">
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf"
-                style={{ display: 'none' }}
-                onChange={handleAttach}
-                aria-hidden="true"
-              />
+                  <textarea
+                    ref={inputRef}
+                    className="chat-input"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Message ResumeShift…"
+                    rows={1}
+                    disabled={!!loadingStatus || attachLoading}
+                    aria-label="Message input"
+                  />
 
-              {/* + button */}
-              <button
-                className="icon-btn attach-btn"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!!loadingStatus || attachLoading}
-                aria-label="Attach resume PDF"
-                title="Attach resume (PDF)"
-              >
-                {attachLoading
-                  ? <span className="spinner" aria-hidden="true" />
-                  : <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+                  <button
+                    className="icon-btn send-btn"
+                    onClick={handleSend}
+                    disabled={!input.trim() || !!loadingStatus || attachLoading}
+                    aria-label="Send message"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 13V3M3 8l5-5 5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                }
-              </button>
-
-              <textarea
-                ref={inputRef}
-                className="chat-input"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={sessionId ? 'Message ResumeShift…' : 'Attach a resume to begin…'}
-                rows={1}
-                disabled={!!loadingStatus || attachLoading}
-                aria-label="Message input"
-              />
-
-              {/* Send button */}
-              <button
-                className="icon-btn send-btn"
-                onClick={handleSend}
-                disabled={!input.trim() || !!loadingStatus || attachLoading || !sessionId}
-                aria-label="Send message"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M8 13V3M3 8l5-5 5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </section>
 
         {/* Right — results */}
