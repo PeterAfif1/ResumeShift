@@ -76,6 +76,42 @@ function ChatMessage({ msg, onQuickReply }) {
   );
 }
 
+/* ─── PhaseProgress ───────────────────────────────────────── */
+
+const PHASES = [
+  { id: 1, label: 'Goal Setting' },
+  { id: 2, label: 'Resume Analysis' },
+  { id: 3, label: 'Bullet Rewrites' },
+  { id: 4, label: 'Role Matching' },
+];
+
+function PhaseProgress({ currentPhase }) {
+  return (
+    <div className="phase-progress" role="list" aria-label="Progress">
+      {PHASES.map((p, i) => {
+        const done   = p.id < currentPhase;
+        const active = p.id === currentPhase;
+        const cls    = done ? 'pp-step pp-step--done'
+                     : active ? 'pp-step pp-step--active'
+                     : 'pp-step pp-step--upcoming';
+        return (
+          <React.Fragment key={p.id}>
+            <div className={cls} role="listitem" aria-current={active ? 'step' : undefined}>
+              <span className="pp-step__dot" aria-hidden="true">
+                {done
+                  ? <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  : null}
+              </span>
+              <span className="pp-step__label">{p.label}</span>
+            </div>
+            {i < PHASES.length - 1 && <span className="pp-connector" aria-hidden="true" />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ─── main component ──────────────────────────────────────── */
 
 export default function AppShell({ onNewSession }) {
@@ -324,6 +360,13 @@ export default function AppShell({ onNewSession }) {
   }
 
   /* ── render ── */
+  // Derive current phase from accumulated results — no new state needed
+  const phases = results.map((r) => r.phase);
+  const currentPhase = phases.includes(4) ? 4
+                     : phases.includes(3) ? 4   // rewrites done → highlight Role Matching next
+                     : phases.includes(2) ? 3   // analysis done → highlight Bullet Rewrites
+                     : 1;                        // nothing yet → Goal Setting
+
   return (
     <div className="shell">
       {/* ── Navbar ── */}
@@ -342,6 +385,8 @@ export default function AppShell({ onNewSession }) {
 
         {/* Left — chat */}
         <section className="left-panel" aria-label="Chat">
+
+          <PhaseProgress currentPhase={currentPhase} />
 
           <div className="chat-messages" aria-live="polite">
             {messages.map((msg, i) => (
