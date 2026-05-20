@@ -451,7 +451,8 @@ export default function AppShell({ onNewSession }) {
       <nav className="navbar">
         <div className="navbar__logo">
           <span className="navbar__logo-mark" aria-hidden="true">⇄</span>
-          ResumeShift
+          <span className="navbar__logo-name">ResumeShift</span>
+          <span className="navbar__tagline">AI resume analyst for CS grads</span>
         </div>
         <button className="navbar__new-btn" onClick={onNewSession}>
           New Session

@@ -34,6 +34,23 @@
   color: var(--accent);
 }
 
+.navbar__logo-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.navbar__tagline {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-faint);
+  letter-spacing: 0;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--border-2);
+  margin-left: 0.15rem;
+}
+
 .navbar__new-btn {
   background: none;
   border: 1px solid var(--border-2);
