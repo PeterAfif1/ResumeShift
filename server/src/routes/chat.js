@@ -287,9 +287,8 @@ router.post('/', async (req, res) => {
       });
     } catch (err) {
       console.error('[chat] Phase 3 chain error:', err.message);
-      return res.json({
-        turns: [{ phase: 2, content: firstContent, parsed: safeParseJSON(firstContent) }],
-        warning: 'Rewrites failed to generate. Type "rewrite the bullets" to try again.',
+      return res.status(502).json({
+        error: 'Rewrites failed to generate — please try sending again.',
       });
     }
   }
@@ -310,13 +309,25 @@ router.post('/', async (req, res) => {
     );
     console.log('[chat] running Phase 1 classifier — messages:', conversationForClassifier.length);
 
-    const p1Done = await phase1IsComplete(conversationForClassifier);
+    let p1Done = false;
+    try {
+      p1Done = await phase1IsComplete(conversationForClassifier);
+    } catch (err) {
+      console.error('[chat] Phase 1 classifier error:', err.message);
+      return res.status(502).json({ error: 'Classification failed — please try again.' });
+    }
     console.log('[chat] Phase 1 complete:', p1Done);
 
     if (p1Done) {
       // Phase 1 done — now check if Phase 1.5 (JD step) is also done
       console.log('[chat] running Phase 1.5 classifier');
-      const p15Result = await phase15IsComplete(conversationForClassifier);
+      let p15Result = { complete: false, jobDescription: null };
+      try {
+        p15Result = await phase15IsComplete(conversationForClassifier);
+      } catch (err) {
+        console.error('[chat] Phase 1.5 classifier error:', err.message);
+        return res.status(502).json({ error: 'Classification failed — please try again.' });
+      }
       console.log('[chat] Phase 1.5 complete:', p15Result.complete);
 
       if (p15Result.complete) {
@@ -348,9 +359,8 @@ router.post('/', async (req, res) => {
           });
         } catch (err) {
           console.error('[chat] Phase 2/3 error:', err.message);
-          return res.json({
-            turns: [{ phase: null, content: firstContent, parsed: null }],
-            warning: 'Analysis failed to run. Type "analyse my resume" to try again.',
+          return res.status(502).json({
+            error: 'Analysis failed — please try sending again.',
           });
         }
       }

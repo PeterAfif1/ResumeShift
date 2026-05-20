@@ -23,7 +23,7 @@ export async function swapResume(sessionId, file) {
 
 export async function sendMessage(sessionId, message) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90000); // 90s
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30s
 
   try {
     const res = await fetch(`${BASE}/chat`, {
@@ -37,7 +37,7 @@ export async function sendMessage(sessionId, message) {
     return data; // { turns, warning? }
   } catch (err) {
     if (err.name === 'AbortError') {
-      throw new Error('Request timed out — the analysis is taking too long. Please try again.');
+      throw new Error('Something went wrong — try sending again.');
     }
     throw err;
   } finally {

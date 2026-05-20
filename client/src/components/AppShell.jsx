@@ -350,7 +350,9 @@ export default function AppShell({ onNewSession }) {
             {loadingStatus && (
               <div className="cm cm--assistant">
                 <span className="cm__status">
-                  <span className="status-dot" aria-hidden="true" />
+                  <span className="typing-dots" aria-hidden="true">
+                    <span /><span /><span />
+                  </span>
                   {loadingStatus}
                 </span>
               </div>
