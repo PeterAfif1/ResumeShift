@@ -111,11 +111,8 @@ function DropZone({ onFile, loading, error }) {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={() => !loading && zoneInputRef.current?.click()}
-      role="button"
-      tabIndex={0}
-      aria-label="Upload resume PDF — click or drag and drop"
-      onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? zoneInputRef.current?.click() : null}
+      role="region"
+      aria-label="Resume upload area"
     >
       <input
         ref={zoneInputRef}
@@ -134,21 +131,54 @@ function DropZone({ onFile, loading, error }) {
         </div>
       ) : (
         <div className="drop-zone__inner">
-          <div className="drop-zone__icon" aria-hidden="true">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect x="4" y="4" width="24" height="28" rx="3"
-                stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M10 4v6a1 1 0 001 1h6" stroke="currentColor" strokeWidth="1.5"
-                strokeLinecap="round"/>
-              <path d="M16 17v8M12 21l4-4 4 4"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          {/* Product hero */}
+          <div className="drop-zone__hero">
+            <span className="drop-zone__hero-mark" aria-hidden="true">⇄</span>
+            <h1 className="drop-zone__hero-name">ResumeShift</h1>
           </div>
-          <p className="drop-zone__label">
-            {dragging ? 'Drop to upload' : 'Drop your resume here'}
+          <p className="drop-zone__hero-sub">
+            Upload your resume and get a scored analysis, rewritten bullets,<br />
+            and adjacent role matches — in under a minute.
           </p>
-          <p className="drop-zone__sub">or <span className="drop-zone__browse">click to browse</span></p>
-          <p className="drop-zone__hint">PDF only · max 10 MB</p>
+
+          {/* Feature pills */}
+          <div className="drop-zone__features" aria-hidden="true">
+            <span className="drop-zone__feature">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth="1.2"/><path d="M3.5 5.5l1.5 1.5 2.5-2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Resume scoring
+            </span>
+            <span className="drop-zone__feature">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth="1.2"/><path d="M3.5 5.5l1.5 1.5 2.5-2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Bullet rewrites
+            </span>
+            <span className="drop-zone__feature">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="currentColor" strokeWidth="1.2"/><path d="M3.5 5.5l1.5 1.5 2.5-2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Role matching
+            </span>
+          </div>
+
+          {/* Drop target */}
+          <div
+            className={`drop-zone__target ${dragging ? 'drop-zone__target--over' : ''}`}
+            onClick={() => !loading && zoneInputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && zoneInputRef.current?.click()}
+          >
+            <div className="drop-zone__icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                <rect x="4" y="4" width="24" height="28" rx="3" stroke="currentColor" strokeWidth="1.5"/>
+                <path d="M10 4v6a1 1 0 001 1h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M16 17v8M12 21l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <p className="drop-zone__label">
+              {dragging ? 'Drop to upload' : 'Drop your resume here'}
+            </p>
+            <p className="drop-zone__sub">or <span className="drop-zone__browse">click to browse</span></p>
+            <p className="drop-zone__hint">PDF only · max 10 MB</p>
+          </div>
+
           {error && <p className="drop-zone__error" role="alert">{error}</p>}
         </div>
       )}
