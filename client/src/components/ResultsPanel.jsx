@@ -8,14 +8,30 @@ export default function ResultsPanel({ results, latestCardRef }) {
   if (!results.length) {
     return (
       <div className="results-empty">
-        <div className="results-empty__icon" aria-hidden="true">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect x="4" y="4" width="24" height="28" rx="3" stroke="#d1d1d6" strokeWidth="1.5"/>
-            <path d="M9 11h14M9 16h10M9 21h7" stroke="#d1d1d6" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
+        <p className="results-empty__title">How it works</p>
+        <div className="results-steps">
+          <div className="results-step">
+            <span className="results-step__num">1</span>
+            <div>
+              <p className="results-step__heading">Upload your resume</p>
+              <p className="results-step__body">Drop a PDF in the panel on the left. We extract your experience, skills, and projects automatically.</p>
+            </div>
+          </div>
+          <div className="results-step">
+            <span className="results-step__num">2</span>
+            <div>
+              <p className="results-step__heading">Tell us your target role</p>
+              <p className="results-step__body">Answer three quick questions — target role, experience level, and timeline. Optionally paste a job description.</p>
+            </div>
+          </div>
+          <div className="results-step">
+            <span className="results-step__num">3</span>
+            <div>
+              <p className="results-step__heading">Get your analysis</p>
+              <p className="results-step__body">A scored breakdown, rewritten bullets with missing keywords added, and adjacent roles you qualify for — all here.</p>
+            </div>
+          </div>
         </div>
-        <p className="results-empty__title">Your analysis will appear here</p>
-        <p className="results-empty__sub">Attach a resume and answer a few questions to get started.</p>
       </div>
     );
   }
