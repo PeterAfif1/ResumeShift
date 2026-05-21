@@ -3,7 +3,7 @@ import './PhaseCards.css';
 
 /* ── Score ring ─────────────────────────────────────────────────────────── */
 
-function ScoreRing({ score }) {
+function ScoreRing({ score, summary }) {
   const radius = 36;
   const circ   = 2 * Math.PI * radius;
   const fill   = circ - (score / 100) * circ;
@@ -17,9 +17,7 @@ function ScoreRing({ score }) {
     <div className="score-hero" style={{ '--score-color': color, '--score-bg': bg, '--score-border': border }}>
       <div className="score-ring-wrap" aria-label={`Score: ${score} out of 100`}>
         <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
-          {/* Track */}
           <circle cx="48" cy="48" r={radius} fill="none" stroke={bg} strokeWidth="8" />
-          {/* Progress */}
           <circle
             cx="48" cy="48" r={radius}
             fill="none"
@@ -41,6 +39,7 @@ function ScoreRing({ score }) {
         <span className="score-verdict" style={{ color, background: bg, borderColor: border }}>
           {label}
         </span>
+        {summary && <p className="score-summary">{summary}</p>}
       </div>
     </div>
   );
@@ -82,11 +81,8 @@ export default function Phase2Card({ data }) {
         <h2 className="card__title">Resume Analysis</h2>
       </div>
 
-      {/* ── Score hero ── */}
-      <ScoreRing score={data.overall_score} />
-
-      {/* ── Summary ── */}
-      <p className="p2-summary">{data.summary}</p>
+      {/* ── Score hero + summary ── */}
+      <ScoreRing score={data.overall_score} summary={data.summary} />
 
       {/* ── Strengths & Gaps ── */}
       <div className="two-col">
