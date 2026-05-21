@@ -381,6 +381,11 @@ export default function AppShell({ onNewSession }) {
         const { sessionId: newId } = await uploadResume(file);
         setSessionId(newId);
         setAttachedFile({ name: file.name });
+        // Replace the welcome message with a clean prompt
+        setMessages([{
+          role: 'assistant',
+          content: 'Resume uploaded. What role are you targeting?',
+        }]);
       } else {
         const { fileName } = await swapResume(sessionId, file);
         setAttachedFile({ name: fileName || file.name });
